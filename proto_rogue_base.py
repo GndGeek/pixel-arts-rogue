@@ -1,8 +1,6 @@
 import libtcodpy as libtcod
 import math
 
-print "check push"
-
 class messenger:
   window=None
 
