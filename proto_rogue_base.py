@@ -1,6 +1,8 @@
 import libtcodpy as libtcod
 import math
 
+print "git"
+
 class messenger:
   window=None
 
