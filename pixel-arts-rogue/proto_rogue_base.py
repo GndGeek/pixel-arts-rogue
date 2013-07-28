@@ -1,6 +1,8 @@
 import libtcodpy as libtcod
 import math
 
+print "check"
+
 class messenger:
   window=None
 
