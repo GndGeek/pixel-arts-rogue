@@ -59,6 +59,7 @@ class GameWindow (object):
           if obj != self.player and isinstance(obj, Creature):
             obj.turn(self.map, self.player, libtcod.map_is_in_fov(self.map.fov_map, obj.x, obj.y))
         for obj in self.map.objects:
+          obj.tick()
           if obj.destroyed:
             obj.death_effects(self, self.map, self.player)
             self.map.objects.remove(obj)
@@ -301,7 +302,7 @@ class GameWindow (object):
         self.game_msgs.append( (line, color) )
   def messageAt(self, x, y, new_msg, color = libtcod.white):
     if libtcod.map_is_in_fov(self.map.fov_map, x, y):
-      self.message(new_msg, color = libtcod.white)
+      self.message(new_msg, color)
     else:
       self.debug_message("Hidden Message: " + new_msg + " at location: (" + str(x) + ", " + str(y) + ")")
   def inventory_menu(self, header):

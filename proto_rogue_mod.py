@@ -51,29 +51,41 @@ class Thief(Creature):
       messenger.window.messageAt(self.x, self.y, self.name+' steals '+loot.name+' from '+creature.name+'.')
     return True
 
-class HealingPotion(Item):
+class HealingPotion(ConsumableItem):
   def __init__(self, x, y, owner):
-    Item.__init__(self, x, y, 'healing potion', '!', libtcod.purple, owner)
-  def use(self):
+    ConsumableItem.__init__(self, x, y, 'healing potion', '!', libtcod.purple, owner)
+  def use_effect(self):
     self.owner.heal(10)
-    self.owner.removeItem(self)
     messenger.window.message('You feel better.', libtcod.light_purple)
 
-class AttackPotion(Item):
+class AttackPotion(ConsumableItem):
   def __init__(self, x, y, owner):
-    Item.__init__(self, x, y, 'attack potion', '!', libtcod.red, owner)
-  def use(self):
+    ConsumableItem.__init__(self, x, y, 'attack potion', '!', libtcod.red, owner)
+  def use_effect(self):
     self.owner.attack+=1
-    self.owner.removeItem(self)
     messenger.window.message('You feel more powerful. Attack +1!', libtcod.red)
 
-class DefensePotion(Item):
+class DefensePotion(ConsumableItem):
   def __init__(self, x, y, owner):
-    Item.__init__(self, x, y, 'defense potion', '!', libtcod.dark_green, owner)
-  def use(self):
+    ConsumableItem.__init__(self, x, y, 'defense potion', '!', libtcod.dark_green, owner)
+  def use_effect(self):
     self.owner.defense+=1
-    self.owner.removeItem(self)
     messenger.window.message('You feel safer. Defense +1!', libtcod.dark_green)
+
+class StaffOfRegeneration(ChargedItem):
+  def __init__(self, x, y, owner):
+    ChargedItem.__init__(self, x, y, "staff of regeneration", '\\', libtcod.light_blue, owner, 10)
+  def use_effect(self):
+    self.owner.heal(2)
+    messenger.window.message('The energy of the staff regenerates you.', libtcod.light_blue)
+
+class RodOfRuin(RechargingItem):
+  def __init__(self, x, y, owner):
+    RechargingItem.__init__(self, x, y, "rod of ruin", "-", libtcod.red, owner, 1)
+  def use_effect(self):
+    for c in messenger.window.map.objects:
+      if isinstance(c, Creature) and c != self.owner and (abs(c.x-self.owner.x)+abs(c.y-self.owner.y)) <= 2:
+        messenger.window.messageAt(self.owner.x, self.owner.y, self.owner.name+' blasts '+c.name+' for '+str(c.damage(20))+' damage.', libtcod.red)
 
 class Map(MapBase):
   def __init__(self, width, height, difficulty):
@@ -108,7 +120,7 @@ class Map(MapBase):
  
         #only place it if the tile is not blocked
         if not self.is_blocked(x, y):
-            item_type=libtcod.random_get_int(0, 0, 3)
+            item_type=libtcod.random_get_int(0, 0, 5)
             if item_type==0 or item_type==1:
               #create a healing potion
               self.getItem(HealingPotion(x, y, None))
@@ -116,6 +128,10 @@ class Map(MapBase):
               self.getItem(AttackPotion(x, y, None))
             elif item_type==3:
               self.getItem(DefensePotion(x, y, None))
+            elif item_type==4:
+              self.getItem(StaffOfRegeneration(x, y, None))
+            elif item_type==5:
+              self.getItem(RodOfRuin(x, y, None))
   def place_monsters(self, room):
     #choose random number of monsters
     num_monsters = libtcod.random_get_int(0, 0, MAX_ROOM_MONSTERS)
@@ -127,16 +143,15 @@ class Map(MapBase):
  
         #only place it if the tile is not blocked
         if not self.is_blocked(x, y):
-          if libtcod.random_get_int(0, 0, 5)==4:
-            self.objects.append(Troll(x, y))
-          else:
-            if libtcod.random_get_int(0, 0, 4)==0:
+            monster_type=libtcod.random_get_int(0, 0, 6)
+            if monster_type==0 or monster_type==1 or monster_type==2:
+              self.objects.append(Rat(x, y))
+            elif monster_type==3:
+              self.objects.append(Troll(x, y))
+            elif monster_type==4 or monster_type==5:
               self.objects.append(Orc(x, y))
-            else:
-              if libtcod.random_get_int(0, 0, 2)==0:
-                self.objects.append(Thief(x, y))
-              else:
-                self.objects.append(Rat(x, y))
+            elif monster_type==6:
+              self.objects.append(Thief(x, y))
   def create_h_tunnel(self, x1, x2, y):
     #horizontal tunnel. min() and max() are used in case x1>x2
     for x in range(min(x1, x2), max(x1, x2) + 1):

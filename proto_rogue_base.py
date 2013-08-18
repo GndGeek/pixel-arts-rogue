@@ -74,7 +74,7 @@ class GameObject (object):
     def __init__(self, x, y, name, char, color, blocks=False, always_visible=False):
         self.x = x
         self.y = y
-        self.name=name
+        self._name=name
         self.char = char
         self.color = color
         self.blocks=blocks
@@ -90,6 +90,16 @@ class GameObject (object):
         libtcod.console_put_char(con, self.x, self.y, ' ', libtcod.BKGND_NONE)
     def __str__(self):
       return self.name
+    def tick(self):
+      pass
+    
+    @property
+    def name(self):
+      return self._name
+    
+    @name.setter
+    def setName(self, name):
+      self._name = name
 
 class Item(GameObject):
   def __init__(self, x, y, name, char, color, owner):
@@ -99,8 +109,49 @@ class Item(GameObject):
     if self.owner: self.owner.removeItem(self)
     self.owner=owner
   def use(self):
+    self.use_effect()
+  def use_effect(self):
     messenger.window.message('This item is useless.', libtcod.white)
 
+class ConsumableItem(Item):
+  def __init_(self, x, y, name, char, color, owner):
+    Item.__init__(self, x, y, name, char, color, owner)
+  def use(self):
+    self.use_effect()
+    self.owner.removeItem(self)
+
+class ChargedItem(Item):
+  def __init__(self, x, y, name, char, color, owner, charges):
+    Item.__init__(self, x, y, name, char, color, owner)
+    self.charges = charges
+  def use(self):
+    self.use_effect()
+    self.charges -= 1
+    if self.charges <= 0:
+      self.owner.removeItem(self)
+      messenger.window.message("Your " + self._name + " is all used up.", self.color)
+    else:
+      messenger.window.message(str(self.charges) + " charges remain.", self.color)
+  @property
+  def name(self):
+    return self._name + " [" + str(self.charges) + " charges]"
+
+class RechargingItem(Item):
+  def __init__(self, x, y, name, char, color, owner, recharge_rate=1):
+    Item.__init__(self, x, y, name, char, color, owner)
+    self.recharge_rate = recharge_rate
+    self.power = 0
+  def tick(self):
+    self.power = min(100, self.power + self.recharge_rate)
+  def use(self):
+    if self.power >= 100:
+      self.use_effect()
+      self.power = 0
+    else:
+      messenger.window.message("Insufficient power!", libtcod.yellow)
+  @property
+  def name(self):
+    return self._name + " [" + str(self.power) + "%% power]"
 
 class Creature(GameObject):
   def __init__(self, x, y, name, char, color, max_hp, inventory=None):
@@ -163,6 +214,9 @@ class Creature(GameObject):
   def death_effects(self, window, gameMap, player):
     while self.inventory:
       gameMap.getItem(self.inventory[0])
+  def tick(self):
+    for item in self.inventory:
+      item.tick()
 
 class Player(Creature):
   def __init__(self, x, y):
